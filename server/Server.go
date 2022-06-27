@@ -3,8 +3,10 @@ package server
 import (
 	"aatrox/im-system/user"
 	"fmt"
+	"io"
 	"net"
 	"sync"
+	"time"
 )
 
 type Server struct {
@@ -71,11 +73,14 @@ func (server *Server) Handle(conn net.Conn) {
 	server.Lock.Unlock()
 
 	// broadcast online message
-	server.Broadcast(user, "go online")
+	server.Broadcast(user, "online")
+
+	//accept client input
+	go server.HandleUserInput(conn, user)
 }
 
 func (server *Server) Broadcast(user *user.User, msg string) {
-	sendMsg := fmt.Sprintf("[%s]%s: %s", user.Addr, user.Name, msg)
+	sendMsg := fmt.Sprintf("[%s]%s: %s", time.Now().Format("2006-01-02 15:04:05"), user.Name, msg)
 
 	server.Msg <- sendMsg
 }
@@ -89,5 +94,27 @@ func (server *Server) ListenMessage() {
 			user.Chan <- msg
 		}
 		server.Lock.Unlock()
+	}
+}
+
+func (server *Server) HandleUserInput(conn net.Conn, user *user.User) {
+	buffer := make([]byte, 4096)
+
+	for {
+		n, err := conn.Read(buffer)
+
+		if n == 0 {
+			server.Broadcast(user, "offline")
+			return
+		}
+
+		if err != nil && err != io.EOF {
+			fmt.Printf("conn.Read err: %v\n", err)
+			return
+		}
+
+		msg := string(buffer[:n-1])
+
+		server.Broadcast(user, msg)
 	}
 }
