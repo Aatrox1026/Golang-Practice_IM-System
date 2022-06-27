@@ -67,13 +67,7 @@ func (server *Server) Handle(conn net.Conn) {
 	// user online
 	user := user.NewUser(conn)
 
-	// add user to server.OnlineUsers
-	server.Lock.Lock()
-	server.OnlineUsers[user.Name] = user
-	server.Lock.Unlock()
-
-	// broadcast online message
-	server.Broadcast(user, "online")
+	server.UserOnline(user)
 
 	//accept client input
 	go server.HandleUserInput(conn, user)
@@ -104,7 +98,7 @@ func (server *Server) HandleUserInput(conn net.Conn, user *user.User) {
 		n, err := conn.Read(input)
 
 		if n == 0 {
-			server.Broadcast(user, "offline")
+			server.UserOffline(user)
 			return
 		}
 
@@ -116,6 +110,26 @@ func (server *Server) HandleUserInput(conn net.Conn, user *user.User) {
 		// clean "\n" after user input string
 		msg := string(input[:n-1])
 
-		server.Broadcast(user, msg)
+		server.Broadcast(user, user.HandleMessage(msg))
 	}
+}
+
+func (server *Server) UserOnline(user *user.User) {
+	// add user to server.OnlineUsers
+	server.Lock.Lock()
+	server.OnlineUsers[user.Name] = user
+	server.Lock.Unlock()
+
+	// broadcast online message
+	server.Broadcast(user, "online")
+}
+
+func (server *Server) UserOffline(user *user.User) {
+	// add user to server.OnlineUsers
+	server.Lock.Lock()
+	delete(server.OnlineUsers, user.Name)
+	server.Lock.Unlock()
+
+	// broadcast offline message
+	server.Broadcast(user, "offline")
 }

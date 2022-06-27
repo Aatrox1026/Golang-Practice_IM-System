@@ -34,3 +34,8 @@ func (user *User) ListenMessage() {
 		user.Conn.Write([]byte(msg))
 	}
 }
+
+func (user *User) HandleMessage(msg string) (processed string) {
+	processed = msg
+	return
+}
