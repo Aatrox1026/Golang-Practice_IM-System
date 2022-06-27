@@ -98,10 +98,10 @@ func (server *Server) ListenMessage() {
 }
 
 func (server *Server) HandleUserInput(conn net.Conn, user *user.User) {
-	buffer := make([]byte, 4096)
+	input := make([]byte, 4096)
 
 	for {
-		n, err := conn.Read(buffer)
+		n, err := conn.Read(input)
 
 		if n == 0 {
 			server.Broadcast(user, "offline")
@@ -113,7 +113,7 @@ func (server *Server) HandleUserInput(conn net.Conn, user *user.User) {
 			return
 		}
 
-		msg := string(buffer[:n-1])
+		msg := string(input[:n-1])
 
 		server.Broadcast(user, msg)
 	}
