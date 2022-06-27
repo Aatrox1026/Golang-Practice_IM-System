@@ -113,6 +113,7 @@ func (server *Server) HandleUserInput(conn net.Conn, user *user.User) {
 			return
 		}
 
+		// clean "\n" after user input string
 		msg := string(input[:n-1])
 
 		server.Broadcast(user, msg)
