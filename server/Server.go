@@ -64,6 +64,7 @@ func (server *Server) Start() {
 
 func (server *Server) Handle(conn net.Conn) {
 	// fmt.Println("create conn success")
+	isLive := make(chan bool)
 
 	// user online
 	user := user.NewUser(conn)
@@ -71,7 +72,24 @@ func (server *Server) Handle(conn net.Conn) {
 	server.UserOnline(user)
 
 	//accept client input
-	go server.HandleUserInput(conn, user)
+	go server.HandleUserInput(conn, user, isLive)
+
+	for {
+		select {
+		case <-isLive:
+			// do nothing
+
+		case <-time.After(10 * time.Second):
+			server.SendMessage(user, "You have been kicked")
+
+			// delete user resources
+			close(user.Chan)
+			conn.Close()
+
+			// exit current handler
+			return
+		}
+	}
 }
 
 func (server *Server) Broadcast(user *user.User, msg string) {
@@ -96,7 +114,7 @@ func (server *Server) ListenMessage() {
 	}
 }
 
-func (server *Server) HandleUserInput(conn net.Conn, user *user.User) {
+func (server *Server) HandleUserInput(conn net.Conn, user *user.User, isLive chan bool) {
 	input := make([]byte, 4096)
 
 	for {
@@ -116,6 +134,8 @@ func (server *Server) HandleUserInput(conn net.Conn, user *user.User) {
 		msg := string(input[:n-1])
 
 		server.HandleMessage(user, msg)
+
+		isLive <- true
 	}
 }
 

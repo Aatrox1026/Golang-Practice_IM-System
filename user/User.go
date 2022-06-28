@@ -27,6 +27,10 @@ func NewUser(conn net.Conn) (user *User) {
 	return
 }
 
+func DelUser(user *User) {
+	close(user.Chan)
+}
+
 // listen user.Chan and send message to client
 func (user *User) ListenMessage() {
 	for {
