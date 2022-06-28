@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"regexp"
 	"sync"
 	"time"
 )
@@ -139,11 +140,28 @@ func (server *Server) UserOffline(user *user.User) {
 }
 
 func (server *Server) HandleMessage(user *user.User, msg string) {
-	switch msg {
-	case "who":
+	renamePattern := regexp.MustCompile("^rename (.+)$")
+
+	switch {
+	case msg == "who":
 		for _, u := range server.OnlineUsers {
 			output := fmt.Sprintf("%s is online", u.Name)
 			server.SendMessage(user, output)
+		}
+		break
+	case renamePattern.Match([]byte(msg)):
+		newName := renamePattern.FindStringSubmatch(msg)[1]
+
+		if _, ok := server.OnlineUsers[newName]; ok {
+			server.SendMessage(user, fmt.Sprintf("%s has already been used", newName))
+		} else {
+			server.Lock.Lock()
+			delete(server.OnlineUsers, user.Name)
+			user.Name = newName
+			server.OnlineUsers[user.Name] = user
+			server.Lock.Unlock()
+
+			server.SendMessage(user, fmt.Sprintf("Successfully rename to %s", newName))
 		}
 		break
 	default:
