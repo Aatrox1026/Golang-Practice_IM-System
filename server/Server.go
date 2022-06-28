@@ -79,6 +79,10 @@ func (server *Server) Broadcast(user *user.User, msg string) {
 	server.Msg <- sendMsg
 }
 
+func (server *Server) SendMessage(user *user.User, msg string) {
+	user.Chan <- msg
+}
+
 func (server *Server) ListenMessage() {
 	for {
 		msg := <-server.Msg
@@ -110,7 +114,7 @@ func (server *Server) HandleUserInput(conn net.Conn, user *user.User) {
 		// clean "\n" after user input string
 		msg := string(input[:n-1])
 
-		server.Broadcast(user, user.HandleMessage(msg))
+		server.HandleMessage(user, msg)
 	}
 }
 
@@ -132,4 +136,17 @@ func (server *Server) UserOffline(user *user.User) {
 
 	// broadcast offline message
 	server.Broadcast(user, "offline")
+}
+
+func (server *Server) HandleMessage(user *user.User, msg string) {
+	switch msg {
+	case "who":
+		for _, u := range server.OnlineUsers {
+			output := fmt.Sprintf("%s is online", u.Name)
+			server.SendMessage(user, output)
+		}
+		break
+	default:
+		server.Broadcast(user, msg)
+	}
 }
