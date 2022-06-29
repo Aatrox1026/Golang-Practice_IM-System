@@ -79,7 +79,7 @@ func (server *Server) Handle(conn net.Conn) {
 		case <-isLive:
 			// do nothing
 
-		case <-time.After(10 * time.Second):
+		case <-time.After(300 * time.Second):
 			server.SendMessage(user, "You have been kicked")
 
 			// delete user resources
@@ -161,6 +161,7 @@ func (server *Server) UserOffline(user *user.User) {
 
 func (server *Server) HandleMessage(user *user.User, msg string) {
 	renamePattern := regexp.MustCompile("^rename (.+)$")
+	dmPattern := regexp.MustCompile("^dm:(.+) (.+)$")
 
 	switch {
 	case msg == "who":
@@ -183,6 +184,19 @@ func (server *Server) HandleMessage(user *user.User, msg string) {
 
 			server.SendMessage(user, fmt.Sprintf("Successfully rename to %s", newName))
 		}
+		break
+	case dmPattern.Match([]byte(msg)):
+		tmp := dmPattern.FindStringSubmatch(msg)
+		targetName := tmp[1]
+		content := tmp[2]
+
+		targetUser, ok := server.OnlineUsers[targetName]
+		if !ok {
+			server.SendMessage(user, fmt.Sprintf("User %s not found", targetName))
+			return
+		}
+
+		server.SendMessage(targetUser, fmt.Sprintf("[DM]%s: %s", user.Name, content))
 		break
 	default:
 		server.Broadcast(user, msg)
