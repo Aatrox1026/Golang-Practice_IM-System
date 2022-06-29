@@ -1,7 +1,7 @@
 package server
 
 import (
-	"aatrox/im-system/user"
+	"aatrox/im-system/server_side/user"
 	"fmt"
 	"io"
 	"net"
